@@ -1,0 +1,37 @@
+{
+  "version": "1",
+  "entry": "boas_vindas",
+  "nodes": {
+    "boas_vindas": {
+      "speech": "Olá, {clinica}! Sou a assistente virtual. Como posso ajudar?",
+      "instructions": "Avise que a ligação pode ser gravada. Identifique o motivo sem solicitar dados de saúde desnecessários.",
+      "extract": {
+        "motivo": ["agendar", "remarcar", "urgente", "duvida", "outro"]
+      },
+      "edges": [
+        { "when": "motivo == 'agendar'", "goto": "agendamento" },
+        { "when": "motivo == 'remarcar'", "goto": "agendamento" },
+        { "when": "motivo == 'urgente'", "goto": "triagem_urgente" },
+        { "when": "motivo == 'duvida'", "goto": "duvida" },
+        { "when": "fallback", "goto": "transferir_humano" }
+      ]
+    },
+    "agendamento": {
+      "speech": "Certo. Qual especialidade ou tipo de consulta você procura?",
+      "extract": { "especialidade": "FREE_TEXT" },
+      "edges": [{ "when": "fallback", "goto": "transferir_humano" }],
+      "then": "encerrar"
+    },
+    "triagem_urgente": {
+      "speech": "Entendi. Vou encaminhar sua ligação para a equipe da clínica agora.",
+      "edges": [{ "when": "fallback", "goto": "transferir_humano" }],
+      "then": "transferir_humano"
+    },
+    "duvida": {
+      "speech": "Vou registrar sua dúvida para a equipe retornar. Há mais alguma informação importante?",
+      "extract": { "detalhe": "FREE_TEXT" },
+      "edges": [{ "when": "fallback", "goto": "transferir_humano" }],
+      "then": "encerrar"
+    }
+  }
+}

@@ -1,0 +1,25 @@
+[project]
+name = "atende-ia-runtime"
+version = "0.1.0"
+description = "Runtime de voz pt-BR para o atende-ia"
+readme = "README.md"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+  "pipecat-ai[elevenlabs,openai,silero,websocket]==1.13.*",
+  "psycopg[binary]>=3.2,<4",
+  "pydantic-settings>=2.7,<3",
+  "python-dotenv>=1.0,<2",
+  "fastapi>=0.115,<1",
+  "uvicorn[standard]>=0.34,<1",
+]
+
+[dependency-groups]
+dev = ["pytest>=8.3,<9", "pytest-asyncio>=0.25,<1"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"

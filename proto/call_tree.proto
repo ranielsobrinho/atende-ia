@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package atendeia.v1;
+
+message GetCallTreeRequest { string id = 1; }
+
+message CallTree {
+  string id = 1;
+  string tenant_id = 2;
+  string name = 3;
+  string document_json = 4;
+  string created_at = 5;
+}
+
+service CallTreeService {
+  rpc GetCallTree(GetCallTreeRequest) returns (CallTree);
+}

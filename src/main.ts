@@ -1,0 +1,64 @@
+import { initObservability } from './infrastructure/observability/otel.js'
+
+// Initialize OpenTelemetry BEFORE any other imports
+await initObservability()
+
+import { ServerCredentials } from '@grpc/grpc-js'
+import { env } from './infrastructure/config/env.js'
+import { pool } from './infrastructure/database/pool.js'
+import { makeCallTreeHandlers } from './interfaces/grpc/factories/makeCallTreeHandlers.js'
+import { buildGrpcServer, bindGrpcServer } from './interfaces/grpc/server.js'
+import { makeCallTreeControllers } from './interfaces/http/factories/controllers/makeCallTreeControllers.js'
+import { buildServer } from './interfaces/http/server.js'
+import { readFileSync } from 'node:fs'
+
+const app = await buildServer(makeCallTreeControllers())
+
+const grpcCredentials = env.grpc.tls
+  ? ServerCredentials.createSsl(
+      null,
+      [
+        {
+          private_key: readFileSync(env.grpc.tls.keyPath),
+          cert_chain: readFileSync(env.grpc.tls.certPath),
+        },
+      ],
+      false,
+    )
+  : ServerCredentials.createInsecure()
+
+try {
+  await pool.query('SELECT 1')
+} catch (error) {
+  app.log.error({ err: error }, 'failed to connect to the database')
+  await pool.end()
+  process.exit(1)
+}
+
+const port = env.port
+
+try {
+  await app.listen({ port, host: '0.0.0.0' })
+} catch (error) {
+  app.log.error(error)
+  process.exit(1)
+}
+
+const grpcServer = buildGrpcServer(makeCallTreeHandlers())
+const grpcPort = await bindGrpcServer(
+  grpcServer,
+  env.grpc.port,
+  grpcCredentials,
+)
+app.log.info(`gRPC listening on ${grpcPort}`)
+
+const shutdown = async (signal: string): Promise<void> => {
+  app.log.info(`received ${signal}, shutting down`)
+  await app.close()
+  await new Promise<void>((resolve) => grpcServer.tryShutdown(() => resolve()))
+  await pool.end()
+  process.exit(0)
+}
+
+process.on('SIGINT', () => void shutdown('SIGINT'))
+process.on('SIGTERM', () => void shutdown('SIGTERM'))
